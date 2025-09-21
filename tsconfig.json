@@ -10,6 +10,6 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*"],   // 👈 look inside src folder
+  "include": ["src/**/*", "src/common/templates/passwordResetSuccess.template.ts"],   // 👈 look inside src folder
   "exclude": ["node_modules", "dist"]  // 👈 ignore build + deps
 }
