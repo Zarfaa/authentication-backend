@@ -9,11 +9,14 @@ dotenv.config();
 
 const app = express();
 
-// Enable CORS
 app.use(cors({
-  origin: 'http://localhost:5173', 
-  credentials: true,              
+  origin: [
+    "http://localhost:5173",
+    "https://authentication-frontend.onrender.com" 
+  ],
+  credentials: true,
 }));
+
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
