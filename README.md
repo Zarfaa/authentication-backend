@@ -33,16 +33,16 @@ Create a .env file in the root of your project and add:
 - MONGO_URI=databse_url
 - JWT_SECRET=your_jwt_secret
 - EMAIL_FROM=verified_sendGrid_user
-CLIENT_URL=frontend_url
-SENDGRID_API_KEY=sendGrid_api_key
+- CLIENT_URL=frontend_url
+- SENDGRID_API_KEY=sendGrid_api_key
 
 
 ### 👨‍💻 Tech Stack
 
-Node.js + Express → Backend framework
-JWT → Authentication & authorization
-MongoDB / PostgreSQL → Database
-Nodemailer → Email verification & password reset
-bcrypt.js → Password hashing
+- Node.js + Express → Backend framework
+- JWT → Authentication & authorization
+- MongoDB → Database
+- SendGrid → Email verification & password reset
+- bcrypt.js → Password hashing
 
 
