@@ -24,15 +24,15 @@ The app will be available at 👉 http://localhost:3000
 
 
 ## Available Scripts
-npm run dev → Start dev server with HMR
-npm run build → Build production bundle
+- npm run dev → Start dev server with HMR
+- npm run build → Build production bundle
 
 ### ⚙️ Environment Variables
 Create a .env file in the root of your project and add:
-PORT=3000
-MONGO_URI=databse_url
-JWT_SECRET=your_jwt_secret
-EMAIL_FROM=verified_sendGrid_user
+- PORT=3000
+- MONGO_URI=databse_url
+- JWT_SECRET=your_jwt_secret
+- EMAIL_FROM=verified_sendGrid_user
 CLIENT_URL=frontend_url
 SENDGRID_API_KEY=sendGrid_api_key
 
