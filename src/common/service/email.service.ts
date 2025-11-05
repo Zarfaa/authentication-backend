@@ -1,14 +1,21 @@
-import sgMail, { MailDataRequired } from "@sendgrid/mail";
 import dotenv from "dotenv";
+import { Analytics } from "@bentonow/bento-node-sdk";
 import { signupConfirmTemplate } from "../templates/signupConfirm.template.js";
 import { forgotPasswordTemplate } from "../templates/forgotPassword.template.js";
 import { passwordResetSuccessTemplate } from "../templates/passwordResetSuccess.template.js";
+import { subscribePromptTemplate } from "../templates/subscribe.template.js";
 
 dotenv.config();
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
+const bento = new Analytics({
+  authentication: {
+    publishableKey: process.env.BENTO_PUBLISHABLE_KEY!,
+    secretKey: process.env.BENTO_SECRET_KEY!,
+  },
+  siteUuid: process.env.BENTO_SITE_UUID!,
+});
 
-type EmailTemplateType = "SIGNUP_CONFIRM" | "FORGOT_PASSWORD" | "PASSWORD_RESET_SUCCESS";
+type EmailTemplateType = "SIGNUP_CONFIRM" | "FORGOT_PASSWORD" | "PASSWORD_RESET_SUCCESS" | "SUBSCRIBE_PROMPT";
 
 export const sendEmail = async (
   to: string,
@@ -23,6 +30,7 @@ export const sendEmail = async (
     secondary: process.env.COLOR_SECONDARY || "#EAE6FE",
     background: process.env.COLOR_BACKGROUND || "#F8F8F8",
   };
+
   let subject = "";
   let html = "";
 
@@ -36,16 +44,28 @@ export const sendEmail = async (
     case "PASSWORD_RESET_SUCCESS":
       ({ subject, html } = passwordResetSuccessTemplate(username, linkOrOtp, companyName, colors));
       break;
+    case "SUBSCRIBE_PROMPT":
+      ({ subject, html } = subscribePromptTemplate(username, linkOrOtp, companyName, colors));
+      break;
+
     default:
       throw new Error("Invalid email template type");
   }
 
-  const msg: MailDataRequired = {
-    to,
-    from: process.env.EMAIL_FROM!,
-    subject,
-    html,
-  };
-
-  await sgMail.send(msg);
+  try {
+    const response = await bento.V1.Batch.sendTransactionalEmails({
+      emails: [
+        {
+          to: to,
+          from: process.env.EMAIL_FROM || "hello@newsletter.analyticsauditor.com",
+          subject: subject,
+          html_body: html,
+          transactional: true,
+        }
+      ]
+    });
+    return response;
+  } catch (err: any) {
+    throw err;
+  }
 };

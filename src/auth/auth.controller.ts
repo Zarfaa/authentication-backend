@@ -6,13 +6,18 @@ import { sendEmail } from '../common/service/email.service.js';
 import { ApiError } from '../common/utils/ApiError.js';
 import { successResponse } from '../common/utils/response.js';
 import { generateOtp } from '../common/utils/generateOtp.js';
+import { bento } from '../common/utils/bento.client.js';
 
 export const register = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { firstName, lastName, email, password } = req.body;
+    console.log("🆕 Registering user:", email);
 
     const existingUser = await User.findOne({ email });
-    if (existingUser) throw new ApiError(400, 'Email already exists');
+    if (existingUser) {
+      console.warn("⚠️ Email already exists:", email);
+      throw new ApiError(400, "Email already exists");
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -25,24 +30,23 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
     });
 
     await newUser.save();
+    console.log("✅ New user saved to DB:", newUser._id);
 
-    const token = generateToken({ userId: newUser._id.toString() }, '1h');
+    const token = generateToken({ userId: newUser._id.toString() }, "1h");
     const confirmUrl = `${process.env.CLIENT_URL}/confirm?token=${token}`;
+    console.log("🔗 Confirmation URL:", confirmUrl);
 
     try {
-      await sendEmail(
-        email,
-        `${firstName}`,
-        `${confirmUrl}`,
-        "SIGNUP_CONFIRM"
-      );
+      await sendEmail(email, firstName, confirmUrl, "SIGNUP_CONFIRM");
+      console.log("✅ Registration email triggered successfully for:", email);
     } catch (emailErr) {
-      console.error('Email sending failed:', emailErr);
+      console.error("❌ Email sending failed for:", email);
+      console.error(emailErr);
     }
 
     return successResponse(
       res,
-      'User registered. Please check your email to confirm your account.',
+      "User registered. Please check your email to confirm your account.",
       {
         id: newUser._id,
         email: newUser.email,
@@ -50,13 +54,14 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
       201
     );
   } catch (err) {
+    console.error("❌ Registration error:", err);
     next(err);
   }
 };
 
 export const confirmEmail = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { token } = req.query; 
+    const { token } = req.query;
     if (!token || typeof token !== 'string') {
       throw new ApiError(400, 'Confirmation token is required');
     }
@@ -70,7 +75,14 @@ export const confirmEmail = async (req: Request, res: Response, next: NextFuncti
     }
 
     user.isVerified = true;
-    await user.save();
+    if (!user.hasBeenAskedToSubscribe) {
+      const subscribeLink = `${process.env.CLIENT_URL}/subscribe?email=${encodeURIComponent(user.email)}`;
+
+      await sendEmail(user.email, user.firstName, subscribeLink, "SUBSCRIBE_PROMPT");
+      user.hasBeenAskedToSubscribe = true;
+      await user.save();
+    }
+
 
     return successResponse(res, 'Email confirmed successfully. You can now log in.', {
       id: user._id,
@@ -100,7 +112,7 @@ export const resendConfirmation = async (req: Request, res: Response, next: Next
     const token = generateToken({ userId: user._id.toString() }, '1h');
     const confirmUrl = `${process.env.CLIENT_URL}/confirm?token=${token}`;
 
-    await sendEmail(user.email, user.firstName, confirmUrl , "SIGNUP_CONFIRM");
+    await sendEmail(user.email, user.firstName, confirmUrl, "SIGNUP_CONFIRM");
 
     return successResponse(res, 'Confirmation email resent. Please check your inbox.', {
       email: user.email,
@@ -156,7 +168,7 @@ export const sendOtp = async (req: Request, res: Response, next: NextFunction) =
     user.resetOtpExpiry = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
 
-    await sendEmail(email, user.firstName, `Your OTP for password reset is: ${otp}` , "FORGOT_PASSWORD");
+    await sendEmail(email, user.firstName, `Your OTP for password reset is: ${otp}`, "FORGOT_PASSWORD");
 
     return successResponse(res, 'OTP sent to your email');
   } catch (err) {
@@ -207,3 +219,30 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
     next(err);
   }
 };
+
+export const subscribe = async (req: Request, res: Response, next: NextFunction) => {
+  const email = req.query.email as string;
+  if (!email) return res.status(400).send("Missing email");
+
+  try {
+
+    const userDoc = await User.findOne({ email });
+    const firstName = userDoc ? userDoc.firstName : '';
+
+    const fallbackName = firstName || email.split('@')[0];
+
+    await bento.V1.track({
+      email,
+      type: '$subscribe',
+      fields: {
+        subscribed: true,
+        first_name: fallbackName,
+      },
+    });
+
+    return res.send("✅ You are now subscribed! Thank you!");
+  } catch (err) {
+    console.error("Subscription error:", err);
+    return res.status(500).send("Something went wrong.");
+  }
+}

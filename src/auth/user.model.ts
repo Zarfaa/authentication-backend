@@ -9,6 +9,7 @@ export interface IUser extends Document {
   isVerified: boolean;
   resetOtp?: string;
   resetOtpExpiry?: Date;
+  hasBeenAskedToSubscribe?: boolean;
 }
 
 const userSchema = new Schema<IUser>({
@@ -19,6 +20,7 @@ const userSchema = new Schema<IUser>({
   isVerified: { type: Boolean, default: false },
   resetOtp: { type: String }, 
   resetOtpExpiry: { type: Date }, 
+  hasBeenAskedToSubscribe:{ type: Boolean, default: false }
 });
 
 export const User = model<IUser>('User', userSchema);

@@ -13,6 +13,7 @@
   "description": "",
   "type": "module",
   "dependencies": {
+    "@bentonow/bento-node-sdk": "^0.2.1",
     "@sendgrid/mail": "^8.1.5",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
